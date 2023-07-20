@@ -1,0 +1,59 @@
+#!/usr/bin/env node
+
+const fs = require("fs");
+const moment = require('moment');
+const commander = require('commander');
+const csv = require("csv-stringify");
+
+commander
+  .version('1.0.0', '-v, --version')
+  .usage('[OPTIONS]...')
+  .argument('<output>', 'Accepts the output file name')
+  .parse(process.argv);
+
+const filename = "saved_from_db.csv";
+
+const csvColumns = [
+    'month name',
+    'salary payment date',
+    'bonus payment date'
+];
+
+const writableStream = fs.createWriteStream(filename);
+
+const stringifier = csv.stringify({ header: true, columns: csvColumns });
+
+const getMidOfMonth = day => day.endOf('month');
+
+const getStartDayOfMonth = day => day.startOf('month');
+
+const getWeekName = day => day.format('dddd');
+
+const getMonthName = day => day.format('MMMM');
+
+for (let month = 0; month < 12; month++) {
+    let midMonth = moment().add(month, 'month').date(15);
+
+    midMonth = getWeekName(midMonth) == 'Sunday' ? midMonth.add(3, 'days') : midMonth;
+    midMonth = getWeekName(midMonth) == 'Saturday' ? midMonth.add(4, 'days') : midMonth;
+
+    let lastDay = moment().add(month, 'month').endOf('month');
+    lastDay = getWeekName(lastDay) == 'Sunday' ? lastDay.subtract(2, 'days') : lastDay;
+    lastDay = getWeekName(lastDay) == 'Saturday' ? lastDay.subtract(1, 'day') : lastDay;
+
+    stringifier.write({
+        'month name': getMonthName(midMonth),
+        'salary payment date': lastDay.format('YYYY-MM-DD'),
+        'bonus payment date': midMonth.format('YYYY-MM-DD'),
+    });
+}
+
+stringifier.pipe(writableStream);
+
+console.log("Finished writing data");
+
+
+const options = commander.opts();
+
+console.log(options);
+// commander.help();
